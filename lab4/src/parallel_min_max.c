@@ -15,6 +15,12 @@
 #include "find_min_max.h"
 #include "utils.h"
 
+volatile sig_atomic_t timeout_flag = 0; // Флаг для таймаута
+
+void handle_timeout(int sig) {
+    timeout_flag = 1; // Устанавливаем флаг при получении сигнала
+}
+
 int main(int argc, char **argv) {
     int seed = -1;
     int array_size = -1;
@@ -88,6 +94,9 @@ int main(int argc, char **argv) {
     GenerateArray(array, array_size, seed);
     int active_child_processes = 0;
 
+// Установка обработчика сигнала
+    signal(SIGALRM, handle_timeout);
+
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
 
@@ -117,21 +126,24 @@ int main(int argc, char **argv) {
 
     // Проверка на таймаут
     if (timeout > 0) {
-        sleep(timeout);  // Ждем указанное количество секунд
-        for (int i = 0; i < pnum; i++) {
-            kill(pids[i], SIGKILL);  // Убиваем дочерние процессы
-        }
-        printf("Timeout reached. Killed child processes.\n");
-        // Освобождаем память и завершаем программу
-        free(array);
-        return 0;
+        alarm(timeout);  // Устанавливаем таймер таймаута
     }
 
     while (active_child_processes > 0) {
-        // ваш код здесь
-        active_child_processes -= 1;
-    }
+        if (timeout_flag) { // Если сработал таймаут
+            for (int i = 0; i < pnum; i++) {
+                kill(pids[i], SIGKILL);  // Убиваем дочерние процессы
+            }
+            printf("Timeout reached. Killed child processes.n");
+            break;
+        }
 
+        int status;
+        pid_t child_pid = wait(&status);
+        if (child_pid > 0) {
+            active_child_processes -= 1; // Уменьшение количества активно работающих процессов
+        }
+    }
     struct MinMax min_max;
     min_max.min = INT_MAX;
     min_max.max = INT_MIN;
