@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (k == -1  mod == -1  !strlen(servers_file)) {
+    if (k == -1 || mod == -1 || !strlen(servers_file)) {
         fprintf(stderr, "Using: %s --k 1000 --mod 5 --servers /path/to/file\n", argv[0]);
         return 1;
     }
@@ -145,8 +145,7 @@ int main(int argc, char **argv) {
         uint64_t begin = i * chunk_size + 1;
         uint64_t end = (i == num_servers - 1) ? k : (begin + chunk_size - 1);
 
-
-char task[sizeof(uint64_t) * 3];
+        char task[sizeof(uint64_t) * 3];
         memcpy(task, &begin, sizeof(uint64_t));
         memcpy(task + sizeof(uint64_t), &end, sizeof(uint64_t));
         memcpy(task + 2 * sizeof(uint64_t), &mod, sizeof(uint64_t));
@@ -171,4 +170,3 @@ char task[sizeof(uint64_t) * 3];
     free(threads);
     return 0;
 }
-
